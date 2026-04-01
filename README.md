@@ -1,293 +1,214 @@
-# GitHub Repos API
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Vercel-Deployed-000?style=for-the-badge&logo=vercel" alt="Vercel" />
+  <img src="https://img.shields.io/badge/CORS-Enabled-blue?style=for-the-badge" alt="CORS" />
+  <img src="https://img.shields.io/badge/License-Free-green?style=for-the-badge" alt="License" />
+</p>
 
-API publica para buscar, filtrar e ordenar repositorios publicos de qualquer usuario do GitHub. Construida com **Next.js 14** (App Router) e hospedada na **Vercel**.
+<h1 align="center">
+  <br />
+  GitReposAPI
+  <br />
+</h1>
 
-**URL Base em Producao:**
+<h4 align="center">
+  API publica para buscar, filtrar e ordenar repositorios publicos de qualquer usuario do GitHub com uma unica chamada.
+</h4>
 
-```
-https://api-pearl-nine-29.vercel.app
-```
+<p align="center">
+  <a href="https://api-pearl-nine-29.vercel.app">Site</a> &nbsp;&bull;&nbsp;
+  <a href="https://api-pearl-nine-29.vercel.app/docs">Docs</a> &nbsp;&bull;&nbsp;
+  <a href="https://api-pearl-nine-29.vercel.app/playground">Playground</a> &nbsp;&bull;&nbsp;
+  <a href="https://api-pearl-nine-29.vercel.app/examples">Exemplos</a> &nbsp;&bull;&nbsp;
+  <a href="https://www.linkedin.com/in/erickydias">LinkedIn</a>
+</p>
 
----
+<br />
 
-## Indice
+<p align="center">
+  <code>https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME</code>
+</p>
 
-- [Visao Geral](#visao-geral)
-- [Como Funciona](#como-funciona)
-- [Endpoint](#endpoint)
-- [Parametros](#parametros)
-- [Exemplos de Uso](#exemplos-de-uso)
-  - [Buscar todos os repos de um usuario](#1-buscar-todos-os-repos-de-um-usuario)
-  - [Filtrar por linguagem](#2-filtrar-por-linguagem)
-  - [Filtrar por topico](#3-filtrar-por-topico)
-  - [Buscar por nome ou descricao](#4-buscar-por-nome-ou-descricao)
-  - [Ordenar por stars](#5-ordenar-por-stars)
-  - [Paginacao](#6-paginacao)
-  - [Somente estatisticas](#7-somente-estatisticas)
-  - [Incluir forks e arquivados](#8-incluir-forks-e-arquivados)
-  - [Combinando filtros](#9-combinando-varios-filtros)
-- [Estrutura da Resposta](#estrutura-da-resposta)
-  - [Resposta completa](#resposta-completa)
-  - [Objeto project](#objeto-project)
-  - [Resposta stats_only](#resposta-stats_only)
-- [Erros](#erros)
-- [Como Usar nos Seus Projetos](#como-usar-nos-seus-projetos)
-  - [JavaScript / Fetch](#javascript--fetch)
-  - [React / Next.js](#react--nextjs)
-  - [Python](#python)
-  - [cURL](#curl)
-- [Como Rodar Localmente](#como-rodar-localmente)
-- [Como Fazer Seu Proprio Deploy](#como-fazer-seu-proprio-deploy)
-- [Seguranca](#seguranca)
-- [Limites](#limites)
-- [Tecnologias](#tecnologias)
-- [Licenca](#licenca)
+<br />
 
 ---
 
-## Visao Geral
+## O que e a GitReposAPI?
 
-Esta API funciona como um wrapper inteligente da API do GitHub. Ela recebe um username, busca todos os repositorios publicos desse usuario e retorna os dados formatados, filtrados, ordenados e paginados, prontos para consumo em qualquer aplicacao frontend.
+A GitReposAPI e uma **API REST publica e gratuita** que funciona como uma camada inteligente sobre a API do GitHub. Em vez de lidar com paginacao, formatacao e filtragem manualmente, voce faz uma unica chamada e recebe dados limpos, organizados e prontos para usar.
 
-**Principais funcionalidades:**
+**Ideal para:**
 
-- Busca automatica de todos os repos (com paginacao interna)
-- Filtros por linguagem, topico e texto de busca
-- 7 opcoes de ordenacao com direcao asc/desc
-- Paginacao customizavel (1 a 100 items por pagina)
-- Estatisticas agregadas (total de stars, forks, linguagens, topicos)
-- Modo "stats_only" para dashboards leves
-- CORS habilitado para uso em qualquer dominio
-- Opcao de incluir/excluir forks e repositorios arquivados
+- Secoes de projetos em portfolios pessoais
+- Dashboards com estatisticas de GitHub
+- Curriculos dinamicos que atualizam sozinhos
+- Qualquer aplicacao que precise listar repos de um usuario
+
+**Por que usar em vez da API do GitHub direto?**
+
+| | API do GitHub | GitReposAPI |
+|---|---|---|
+| Paginacao | Voce implementa | Automatica |
+| Filtragem | Voce implementa | Por query param |
+| Ordenacao | Limitada | 7 opcoes + direcao |
+| Estatisticas | Nao tem | Agregadas automaticamente |
+| Formato | Dados brutos (50+ campos) | Limpo e organizado (campos uteis) |
+| CORS | Nao habilitado | Habilitado para qualquer dominio |
 
 ---
 
-## Como Funciona
+## Inicio Rapido
 
-```
-Seu App  --->  Esta API (Vercel)  --->  GitHub API
-                    |
-                    v
-              Formata, filtra,
-              ordena e pagina
-                    |
-                    v
-              JSON limpo de volta
-              para o seu app
+### 1. Faca uma requisicao GET
+
+```bash
+curl "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME"
 ```
 
-1. Voce faz uma requisicao GET para `/api/github?user=USERNAME`
-2. A API busca todos os repositorios publicos do usuario na API do GitHub
-3. Aplica os filtros que voce passou (linguagem, topico, busca)
-4. Calcula estatisticas agregadas
-5. Ordena e pagina os resultados
-6. Retorna um JSON limpo e organizado
+> Substitua `USERNAME` por qualquer username valido do GitHub.
+
+### 2. Receba JSON organizado
+
+```json
+{
+  "user": "USERNAME",
+  "pagination": { "page": 1, "total_items": 25, "has_next": true },
+  "stats": { "total_repos": 25, "total_stars": 142 },
+  "projects": [
+    {
+      "name": "meu-projeto",
+      "description": "Descricao do repo",
+      "language": "TypeScript",
+      "url": "https://github.com/USERNAME/meu-projeto",
+      "homepage": "https://meusite.com",
+      "stats": { "stars": 15, "forks": 3 }
+    }
+  ]
+}
+```
+
+### 3. Use no seu projeto
+
+```javascript
+const res = await fetch(
+  "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME&sort=stars"
+);
+const data = await res.json();
+
+data.projects.forEach(repo => {
+  console.log(`${repo.name} - ${repo.stats.stars} stars`);
+});
+```
+
+**Pronto.** Sem autenticacao, sem cadastro, sem configuracao.
 
 ---
 
 ## Endpoint
 
 ```
-GET /api/github
-```
-
-**URL completa em producao:**
-
-```
-https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME
+GET https://api-pearl-nine-29.vercel.app/api/github
 ```
 
 ---
 
 ## Parametros
 
-Todos os parametros sao passados via query string (`?chave=valor&chave2=valor2`).
+Todos via query string (`?chave=valor&chave2=valor2`):
 
 | Parametro | Tipo | Obrigatorio | Default | Descricao |
-|---|---|---|---|---|
-| `user` | string | Sim | - | Username do GitHub |
-| `language` | string | Nao | - | Filtrar por linguagem de programacao |
-| `topic` | string | Nao | - | Filtrar por topico do repositorio |
-| `search` | string | Nao | - | Buscar no nome ou descricao do repo |
-| `sort` | string | Nao | `updated` | Campo de ordenacao (veja opcoes abaixo) |
-| `order` | string | Nao | `desc` | Direcao da ordenacao: `asc` ou `desc` |
-| `page` | number | Nao | `1` | Numero da pagina |
-| `per_page` | number | Nao | `10` | Items por pagina (min: 1, max: 100) |
-| `include_forks` | boolean | Nao | `false` | Incluir repositorios que sao forks |
-| `include_archived` | boolean | Nao | `false` | Incluir repositorios arquivados |
-| `stats_only` | boolean | Nao | `false` | Retornar apenas estatisticas |
+|:---|:---|:---:|:---|:---|
+| `user` | `string` | **Sim** | - | Username do GitHub |
+| `language` | `string` | Nao | - | Filtra por linguagem (ex: `TypeScript`, `Python`) |
+| `topic` | `string` | Nao | - | Filtra por topico/tag do repositorio |
+| `search` | `string` | Nao | - | Busca no nome ou descricao (max 100 chars) |
+| `sort` | `string` | Nao | `updated` | Campo de ordenacao (veja abaixo) |
+| `order` | `string` | Nao | `desc` | Direcao: `asc` ou `desc` |
+| `page` | `number` | Nao | `1` | Numero da pagina |
+| `per_page` | `number` | Nao | `10` | Itens por pagina (min: 1, max: 100) |
+| `include_forks` | `boolean` | Nao | `false` | Incluir repos que sao forks |
+| `include_archived` | `boolean` | Nao | `false` | Incluir repos arquivados |
+| `stats_only` | `boolean` | Nao | `false` | Retorna apenas estatisticas |
 
-### Opcoes de ordenacao (`sort`)
+### Opcoes de `sort`
 
-| Valor | Descricao |
-|---|---|
-| `updated` | Data da ultima atualizacao (padrao) |
+| Valor | Ordena por |
+|:---|:---|
+| `updated` | Data da ultima atualizacao **(padrao)** |
 | `created` | Data de criacao |
 | `pushed` | Data do ultimo push |
-| `name` | Nome do repositorio (alfabetico) |
+| `name` | Nome (alfabetico) |
 | `stars` | Numero de stars |
 | `forks` | Numero de forks |
 | `size` | Tamanho do repositorio |
+
+> Todos os filtros sao **case-insensitive**: `typescript`, `TypeScript` e `TYPESCRIPT` funcionam igual.
 
 ---
 
 ## Exemplos de Uso
 
-### 1. Buscar todos os repos de um usuario
+### Busca basica
 
 ```
-GET /api/github?user=dev-erickydias
+GET /api/github?user=torvalds
 ```
 
-Retorna os 10 primeiros repositorios publicos (sem forks, sem arquivados), ordenados por data de atualizacao.
-
----
-
-### 2. Filtrar por linguagem
+### Filtrar por linguagem + ordenar por stars
 
 ```
-GET /api/github?user=dev-erickydias&language=TypeScript
+GET /api/github?user=torvalds&language=C&sort=stars&order=desc
 ```
 
-Retorna apenas os repositorios cuja linguagem principal e TypeScript.
-
-> O filtro e case-insensitive: `typescript`, `TypeScript` e `TYPESCRIPT` funcionam igualmente.
-
----
-
-### 3. Filtrar por topico
+### Buscar por texto no nome/descricao
 
 ```
-GET /api/github?user=dev-erickydias&topic=nextjs
+GET /api/github?user=vercel&search=next
 ```
 
-Retorna apenas os repositorios que possuem o topico "nextjs".
-
-> Topicos sao as tags que voce adiciona no repositorio no GitHub (Settings > Topics).
-
----
-
-### 4. Buscar por nome ou descricao
+### Paginacao (pagina 2, 5 itens)
 
 ```
-GET /api/github?user=dev-erickydias&search=craft
+GET /api/github?user=facebook&page=2&per_page=5
 ```
 
-Retorna repositorios cujo nome ou descricao contem a palavra "craft".
-
-> A busca e case-insensitive e procura em qualquer parte do texto.
-
----
-
-### 5. Ordenar por stars
+### Somente estatisticas (resposta leve)
 
 ```
-GET /api/github?user=dev-erickydias&sort=stars&order=desc
+GET /api/github?user=torvalds&stats_only=true
 ```
-
-Retorna os repositorios ordenados do mais estrelado para o menos estrelado.
-
-**Outros exemplos de ordenacao:**
-
-```
-# Mais antigos primeiro
-GET /api/github?user=dev-erickydias&sort=created&order=asc
-
-# Ordem alfabetica
-GET /api/github?user=dev-erickydias&sort=name&order=asc
-
-# Maiores repositorios primeiro
-GET /api/github?user=dev-erickydias&sort=size&order=desc
-```
-
----
-
-### 6. Paginacao
-
-```
-# Primeira pagina, 5 items por pagina
-GET /api/github?user=dev-erickydias&page=1&per_page=5
-
-# Segunda pagina
-GET /api/github?user=dev-erickydias&page=2&per_page=5
-
-# Todos os repos de uma vez (max 100)
-GET /api/github?user=dev-erickydias&per_page=100
-```
-
-A resposta inclui dados de paginacao para facilitar a navegacao:
-
-```json
-"pagination": {
-  "page": 1,
-  "per_page": 5,
-  "total_items": 11,
-  "total_pages": 3,
-  "has_next": true,
-  "has_prev": false
-}
-```
-
----
-
-### 7. Somente estatisticas
-
-```
-GET /api/github?user=dev-erickydias&stats_only=true
-```
-
-Retorna apenas as estatisticas agregadas, sem a lista de repositorios. Ideal para dashboards e componentes de resumo.
 
 **Resposta:**
 
 ```json
 {
-  "user": "dev-erickydias",
+  "user": "torvalds",
   "stats": {
-    "total_repos": 11,
-    "total_stars": 6,
-    "total_forks": 2,
+    "total_repos": 7,
+    "total_stars": 209847,
+    "total_forks": 55231,
     "languages": [
-      { "name": "TypeScript", "count": 5 },
-      { "name": "JavaScript", "count": 4 },
-      { "name": "HTML", "count": 1 },
-      { "name": "CSS", "count": 1 }
+      { "name": "C", "count": 3 },
+      { "name": "Shell", "count": 1 }
     ],
-    "topics": [
-      { "name": "nextjs", "count": 1 }
-    ]
+    "topics": []
   }
 }
 ```
 
----
-
-### 8. Incluir forks e arquivados
+### Incluir forks e arquivados
 
 ```
-# Incluir forks
-GET /api/github?user=dev-erickydias&include_forks=true
-
-# Incluir arquivados
-GET /api/github?user=dev-erickydias&include_archived=true
-
-# Incluir ambos
-GET /api/github?user=dev-erickydias&include_forks=true&include_archived=true
+GET /api/github?user=USERNAME&include_forks=true&include_archived=true
 ```
 
-Por padrao, forks e repositorios arquivados sao excluidos dos resultados.
-
----
-
-### 9. Combinando varios filtros
-
-Voce pode combinar qualquer quantidade de filtros:
+### Combinando tudo
 
 ```
-GET /api/github?user=dev-erickydias&language=TypeScript&sort=stars&order=desc&per_page=5&page=1
+GET /api/github?user=USERNAME&language=TypeScript&sort=stars&order=desc&per_page=5&page=1
 ```
 
-Isso retorna: repos em TypeScript, ordenados por stars (descendente), 5 por pagina, primeira pagina.
+> Repos TypeScript, ordenados por stars (desc), 5 por pagina, primeira pagina.
 
 ---
 
@@ -297,59 +218,54 @@ Isso retorna: repos em TypeScript, ordenados por stars (descendente), 5 por pagi
 
 ```json
 {
-  "user": "dev-erickydias",
+  "user": "USERNAME",
   "pagination": {
     "page": 1,
     "per_page": 10,
-    "total_items": 11,
-    "total_pages": 2,
+    "total_items": 25,
+    "total_pages": 3,
     "has_next": true,
     "has_prev": false
   },
   "stats": {
-    "total_repos": 11,
-    "total_stars": 6,
-    "total_forks": 2,
-    "languages": [
-      { "name": "TypeScript", "count": 5 },
-      { "name": "JavaScript", "count": 4 }
-    ],
-    "topics": [
-      { "name": "nextjs", "count": 1 }
-    ]
+    "total_repos": 25,
+    "total_stars": 142,
+    "total_forks": 38,
+    "languages": [{ "name": "TypeScript", "count": 12 }],
+    "topics": [{ "name": "react", "count": 6 }]
   },
   "projects": [
     {
-      "id": 1191065878,
-      "name": "calculadora",
-      "full_name": "dev-erickydias/calculadora",
-      "description": null,
-      "url": "https://github.com/dev-erickydias/calculadora",
-      "clone_url": "https://github.com/dev-erickydias/calculadora.git",
-      "homepage": "https://calculadora-virid-seven.vercel.app",
+      "id": 123456789,
+      "name": "meu-projeto",
+      "full_name": "USERNAME/meu-projeto",
+      "description": "Descricao do repositorio",
+      "url": "https://github.com/USERNAME/meu-projeto",
+      "clone_url": "https://github.com/USERNAME/meu-projeto.git",
+      "homepage": "https://meusite.com",
       "language": "TypeScript",
-      "topics": [],
-      "default_branch": "master",
+      "topics": ["react", "nextjs"],
+      "default_branch": "main",
       "visibility": "public",
       "is_fork": false,
       "is_archived": false,
       "is_template": false,
-      "license": null,
+      "license": { "key": "mit", "name": "MIT License" },
       "stats": {
-        "stars": 0,
-        "forks": 0,
-        "watchers": 0,
-        "open_issues": 0,
-        "size_kb": 189
+        "stars": 15,
+        "forks": 3,
+        "watchers": 15,
+        "open_issues": 2,
+        "size_kb": 1024
       },
       "dates": {
-        "created_at": "2026-03-24T22:15:47Z",
-        "updated_at": "2026-04-01T07:29:09Z",
-        "pushed_at": "2026-04-01T07:29:06Z",
-        "days_since_update": 0
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2026-03-28T14:20:00Z",
+        "pushed_at": "2026-03-28T14:20:00Z",
+        "days_since_update": 4
       },
       "has": {
-        "pages": false,
+        "pages": true,
         "wiki": true,
         "issues": true,
         "projects": true,
@@ -360,357 +276,379 @@ Isso retorna: repos em TypeScript, ordenados por stars (descendente), 5 por pagi
 }
 ```
 
-### Objeto `project`
+### Campos de cada projeto
 
-Cada repositorio no array `projects` contem:
+<details>
+<summary><strong>Informacoes basicas</strong></summary>
 
 | Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | number | ID unico do repositorio no GitHub |
-| `name` | string | Nome do repositorio |
-| `full_name` | string | Nome completo (usuario/repo) |
-| `description` | string/null | Descricao do repositorio |
-| `url` | string | URL do repositorio no GitHub |
-| `clone_url` | string | URL para clonar o repositorio |
-| `homepage` | string/null | URL do site/demo do projeto |
-| `language` | string/null | Linguagem principal |
-| `topics` | string[] | Lista de topicos/tags |
-| `default_branch` | string | Branch principal (main, master, etc.) |
-| `visibility` | string | Visibilidade (public) |
-| `is_fork` | boolean | Se e um fork de outro repo |
-| `is_archived` | boolean | Se esta arquivado |
-| `is_template` | boolean | Se e um template |
-| `license` | object/null | Licenca (`key` e `name`) |
-| `stats.stars` | number | Numero de stars |
-| `stats.forks` | number | Numero de forks |
-| `stats.watchers` | number | Numero de watchers |
-| `stats.open_issues` | number | Numero de issues abertas |
-| `stats.size_kb` | number | Tamanho em KB |
-| `dates.created_at` | string | Data de criacao (ISO 8601) |
-| `dates.updated_at` | string | Data da ultima atualizacao (ISO 8601) |
-| `dates.pushed_at` | string | Data do ultimo push (ISO 8601) |
-| `dates.days_since_update` | number | Dias desde a ultima atualizacao |
-| `has.pages` | boolean | Se tem GitHub Pages ativo |
-| `has.wiki` | boolean | Se tem wiki habilitada |
-| `has.issues` | boolean | Se tem issues habilitadas |
-| `has.projects` | boolean | Se tem projects habilitados |
-| `has.discussions` | boolean | Se tem discussions habilitadas |
+|:---|:---|:---|
+| `id` | `number` | ID unico no GitHub |
+| `name` | `string` | Nome do repositorio |
+| `full_name` | `string` | Nome completo (`usuario/repo`) |
+| `description` | `string\|null` | Descricao |
+| `url` | `string` | URL do repo no GitHub |
+| `clone_url` | `string` | URL para clonar |
+| `homepage` | `string\|null` | URL do site/demo |
+| `language` | `string\|null` | Linguagem principal |
+| `topics` | `string[]` | Tags/topicos |
+| `default_branch` | `string` | Branch principal |
+| `visibility` | `string` | Visibilidade |
+| `is_fork` | `boolean` | Se e fork |
+| `is_archived` | `boolean` | Se esta arquivado |
+| `is_template` | `boolean` | Se e template |
+| `license` | `object\|null` | Licenca (`key` e `name`) |
 
-### Resposta `stats_only`
+</details>
 
-Quando `stats_only=true`, a resposta nao inclui `pagination` nem `projects`:
+<details>
+<summary><strong>Estatisticas (stats)</strong></summary>
 
-```json
-{
-  "user": "USERNAME",
-  "stats": {
-    "total_repos": 11,
-    "total_stars": 6,
-    "total_forks": 2,
-    "languages": [
-      { "name": "TypeScript", "count": 5 }
-    ],
-    "topics": [
-      { "name": "nextjs", "count": 1 }
-    ]
-  }
-}
-```
+| Campo | Tipo | Descricao |
+|:---|:---|:---|
+| `stats.stars` | `number` | Stars |
+| `stats.forks` | `number` | Forks |
+| `stats.watchers` | `number` | Watchers |
+| `stats.open_issues` | `number` | Issues abertas |
+| `stats.size_kb` | `number` | Tamanho em KB |
+
+</details>
+
+<details>
+<summary><strong>Datas (dates)</strong></summary>
+
+| Campo | Tipo | Descricao |
+|:---|:---|:---|
+| `dates.created_at` | `ISO 8601` | Criacao |
+| `dates.updated_at` | `ISO 8601` | Ultima atualizacao |
+| `dates.pushed_at` | `ISO 8601` | Ultimo push |
+| `dates.days_since_update` | `number` | Dias desde atualizacao |
+
+</details>
+
+<details>
+<summary><strong>Features (has)</strong></summary>
+
+| Campo | Tipo | Descricao |
+|:---|:---|:---|
+| `has.pages` | `boolean` | GitHub Pages ativo |
+| `has.wiki` | `boolean` | Wiki habilitada |
+| `has.issues` | `boolean` | Issues habilitadas |
+| `has.projects` | `boolean` | Projects habilitados |
+| `has.discussions` | `boolean` | Discussions habilitadas |
+
+</details>
 
 ---
 
 ## Erros
 
-A API retorna mensagens de erro claras em formato JSON:
+A API sempre retorna JSON com mensagens claras:
 
-| Status | Situacao | Resposta |
-|---|---|---|
-| `400` | Parametro `user` ausente | `{ "error": "Missing required parameter: user", "usage": "...", "params": {...} }` |
+| Status | Quando acontece | Exemplo de resposta |
+|:---:|:---|:---|
+| `400` | Faltou o `user` | `{ "error": "Missing required parameter: user", "usage": "...", "params": {...} }` |
 | `400` | Username invalido | `{ "error": "Invalid GitHub username format" }` |
 | `400` | Sort invalido | `{ "error": "Invalid sort value. Must be one of: ..." }` |
 | `400` | Order invalido | `{ "error": "Invalid order value. Must be 'asc' or 'desc'" }` |
-| `404` | Usuario nao encontrado | `{ "error": "User \"USERNAME\" not found" }` |
-| `429` | Rate limit excedido | `{ "error": "GitHub API rate limit exceeded. Try again later." }` |
+| `404` | Usuario nao existe | `{ "error": "User \"USERNAME\" not found" }` |
+| `429` | Rate limit estourado | `{ "error": "GitHub API rate limit exceeded. Try again later." }` |
 | `502` | Erro inesperado | `{ "error": "Failed to fetch GitHub repositories" }` |
 
 ---
 
-## Como Usar nos Seus Projetos
+## Exemplos de Integracao
 
-### JavaScript / Fetch
+<details>
+<summary><strong>JavaScript / Fetch</strong></summary>
 
 ```javascript
-// Buscar repos de um usuario
-const response = await fetch(
-  "https://api-pearl-nine-29.vercel.app/api/github?user=dev-erickydias"
-);
-const data = await response.json();
+const API = "https://api-pearl-nine-29.vercel.app/api/github";
 
-console.log(data.stats);       // estatisticas
-console.log(data.projects);    // lista de repos
-console.log(data.pagination);  // info de paginacao
+// Busca basica
+const data = await fetch(`${API}?user=USERNAME`).then(r => r.json());
+console.log(data.stats);
+console.log(data.projects);
 
-// Filtrar por linguagem
-const tsRepos = await fetch(
-  "https://api-pearl-nine-29.vercel.app/api/github?user=dev-erickydias&language=TypeScript"
-).then(res => res.json());
+// Com filtros
+const filtered = await fetch(
+  `${API}?user=USERNAME&language=TypeScript&sort=stars`
+).then(r => r.json());
 
 // Paginacao
 const page2 = await fetch(
-  "https://api-pearl-nine-29.vercel.app/api/github?user=dev-erickydias&page=2&per_page=5"
-).then(res => res.json());
+  `${API}?user=USERNAME&page=2&per_page=5`
+).then(r => r.json());
+
+console.log(page2.pagination.has_next); // true/false
 ```
 
-### React / Next.js
+</details>
+
+<details>
+<summary><strong>React / Next.js</strong></summary>
 
 ```jsx
 "use client";
-
 import { useState, useEffect } from "react";
 
-const API_URL = "https://api-pearl-nine-29.vercel.app/api/github";
+const API = "https://api-pearl-nine-29.vercel.app/api/github";
 
-export default function GitHubProjects() {
+export default function Projects() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_URL}?user=dev-erickydias&sort=stars&order=desc`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Erro ao buscar repos");
-        return res.json();
-      })
+    fetch(`${API}?user=USERNAME&sort=stars&per_page=6`)
+      .then(res => res.json())
       .then(setData)
-      .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p>Erro: {error}</p>;
+  if (!data) return <p>Erro ao carregar</p>;
 
   return (
-    <div>
-      <h1>Meus Projetos</h1>
-      <p>{data.stats.total_repos} repos | {data.stats.total_stars} stars</p>
+    <section>
+      {/* Stats */}
+      <div>
+        <span>{data.stats.total_repos} repos</span>
+        <span>{data.stats.total_stars} stars</span>
+      </div>
 
-      {data.projects.map((project) => (
-        <div key={project.id}>
-          <h2>
-            <a href={project.url} target="_blank" rel="noopener noreferrer">
-              {project.name}
+      {/* Projects */}
+      {data.projects.map(repo => (
+        <div key={repo.id}>
+          <h3>
+            <a href={repo.url} target="_blank" rel="noopener noreferrer">
+              {repo.name}
             </a>
-          </h2>
-          <p>{project.description || "Sem descricao"}</p>
-          <span>{project.language}</span>
-          <span>{project.stats.stars} stars</span>
-          {project.homepage && (
-            <a href={project.homepage} target="_blank" rel="noopener noreferrer">
+          </h3>
+          <p>{repo.description || "Sem descricao"}</p>
+          <span>{repo.language}</span>
+          <span>{repo.stats.stars} stars</span>
+          {repo.homepage && (
+            <a href={repo.homepage} target="_blank" rel="noopener noreferrer">
               Demo
             </a>
           )}
         </div>
       ))}
-
-      {data.pagination.has_next && <button>Proxima pagina</button>}
-    </div>
+    </section>
   );
 }
 ```
 
-### Python
+</details>
+
+<details>
+<summary><strong>Python</strong></summary>
 
 ```python
 import requests
 
-API_URL = "https://api-pearl-nine-29.vercel.app/api/github"
+API = "https://api-pearl-nine-29.vercel.app/api/github"
 
 # Buscar repos
-response = requests.get(API_URL, params={
-    "user": "dev-erickydias",
-    "language": "TypeScript",
+data = requests.get(API, params={
+    "user": "USERNAME",
     "sort": "stars",
-    "order": "desc"
-})
-data = response.json()
-
-for project in data["projects"]:
-    print(f"{project['name']} - {project['stats']['stars']} stars")
-
-# Apenas estatisticas
-stats = requests.get(API_URL, params={
-    "user": "dev-erickydias",
-    "stats_only": "true"
+    "per_page": 20,
 }).json()
 
-print(f"Total: {stats['stats']['total_repos']} repos, {stats['stats']['total_stars']} stars")
+# Stats
+print(f"Total: {data['stats']['total_repos']} repos")
+print(f"Stars: {data['stats']['total_stars']}")
+
+# Projetos
+for repo in data["projects"]:
+    print(f"  {repo['name']} ({repo['language']}) - {repo['stats']['stars']} stars")
+
+# Apenas stats
+stats = requests.get(API, params={
+    "user": "USERNAME",
+    "stats_only": "true"
+}).json()
 ```
 
-### cURL
+</details>
+
+<details>
+<summary><strong>cURL</strong></summary>
 
 ```bash
 # Busca basica
-curl "https://api-pearl-nine-29.vercel.app/api/github?user=dev-erickydias"
+curl "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME"
 
-# Filtrar por linguagem e ordenar
-curl "https://api-pearl-nine-29.vercel.app/api/github?user=dev-erickydias&language=TypeScript&sort=stars"
+# Com filtros
+curl "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME&language=TypeScript&sort=stars"
 
-# Apenas estatisticas
-curl "https://api-pearl-nine-29.vercel.app/api/github?user=dev-erickydias&stats_only=true"
+# Apenas stats
+curl "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME&stats_only=true"
 
 # Formatado com jq
-curl -s "https://api-pearl-nine-29.vercel.app/api/github?user=dev-erickydias" | jq .
+curl -s "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME" | jq '.projects[] | {name, stars: .stats.stars}'
+```
+
+</details>
+
+---
+
+## Como Funciona Internamente
+
+```
+Seu App                    GitReposAPI (Vercel)              GitHub API
+   |                             |                              |
+   |  GET ?user=USERNAME         |                              |
+   |---------------------------->|                              |
+   |                             |  Valida inputs               |
+   |                             |  (regex, sort, order)        |
+   |                             |                              |
+   |                             |  GET /users/USERNAME/repos   |
+   |                             |----------------------------->|
+   |                             |  (paginacao automatica,      |
+   |                             |   ate 10 paginas x 100)      |
+   |                             |<-----------------------------|
+   |                             |                              |
+   |                             |  Filtra (language, topic,    |
+   |                             |  search, forks, archived)    |
+   |                             |                              |
+   |                             |  Calcula stats               |
+   |                             |  Ordena (sort + order)       |
+   |                             |  Pagina (page + per_page)    |
+   |                             |                              |
+   |  JSON formatado + CORS      |                              |
+   |<----------------------------|                              |
 ```
 
 ---
 
-## Como Rodar Localmente
+## Rodando Localmente
 
 ### Pre-requisitos
 
-- [Node.js](https://nodejs.org/) 18 ou superior
-- [npm](https://www.npmjs.com/) (vem com o Node.js)
-- (Opcional) Um [GitHub Token](https://github.com/settings/tokens) para aumentar o rate limit
+- [Node.js](https://nodejs.org/) 18+
+- (Opcional) [GitHub Token](https://github.com/settings/tokens) para rate limit de 5k/h
 
 ### Passo a passo
 
-**1. Clone o repositorio:**
-
 ```bash
+# 1. Clone o repositorio
 git clone https://github.com/dev-erickydias/github-api.git
 cd github-api
-```
 
-**2. Instale as dependencias:**
-
-```bash
+# 2. Instale as dependencias
 npm install
-```
 
-**3. Configure as variaveis de ambiente:**
-
-Crie um arquivo `.env.local` na raiz do projeto:
-
-```bash
+# 3. Configure o token (opcional mas recomendado)
 cp .env.example .env.local
-```
+# Edite .env.local e cole seu GitHub Token
 
-Edite o `.env.local` e coloque seu GitHub Token:
-
-```
-GITHUB_TOKEN=seu_token_aqui
-```
-
-> **Como gerar um GitHub Token:**
-> 1. Acesse https://github.com/settings/tokens
-> 2. Clique em "Generate new token" > "Fine-grained token" (ou "Classic")
-> 3. De um nome ao token (ex: "github-api-local")
-> 4. Para leitura publica, nenhum scope/permissao extra e necessario
-> 5. Clique em "Generate token"
-> 6. Copie o token e cole no `.env.local`
->
-> **Sem token:** a API funciona, mas com limite de 60 requisicoes/hora.
-> **Com token:** o limite sobe para 5.000 requisicoes/hora.
-
-**4. Rode o servidor de desenvolvimento:**
-
-```bash
+# 4. Rode o servidor
 npm run dev
+
+# 5. Acesse
+# http://localhost:3000/api/github?user=USERNAME
 ```
 
-**5. Acesse a API:**
+### Gerando um GitHub Token
 
-```
-http://localhost:3000/api/github?user=dev-erickydias
-```
+1. Acesse [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Clique em **Generate new token** > **Fine-grained token**
+3. De um nome (ex: `github-api-local`)
+4. Para repos publicos, **nenhum scope e necessario**
+5. Clique em **Generate token** e copie
+6. Cole no `.env.local`: `GITHUB_TOKEN=seu_token_aqui`
+
+| | Sem token | Com token |
+|---|---|---|
+| Rate limit | 60 req/hora | **5.000 req/hora** |
 
 ---
 
-## Como Fazer Seu Proprio Deploy
+## Deploy na Vercel
 
-### Deploy na Vercel (recomendado)
+### Via Dashboard (mais facil)
 
-**1. Faca um fork do repositorio:**
-
-Acesse https://github.com/dev-erickydias/github-api e clique em "Fork".
-
-**2. Conecte na Vercel:**
-
-1. Acesse https://vercel.com
-2. Clique em "Add New Project"
-3. Importe o repositorio do fork
-4. A Vercel detecta automaticamente que e um projeto Next.js
-
-**3. Configure a variavel de ambiente:**
-
-Na tela de deploy da Vercel, antes de clicar em "Deploy":
-
-1. Expanda a secao "Environment Variables"
-2. Adicione:
+1. Faca um **fork** deste repositorio
+2. Acesse [vercel.com](https://vercel.com) > **Add New Project**
+3. Importe o fork
+4. Em **Environment Variables**, adicione:
    - Name: `GITHUB_TOKEN`
-   - Value: `seu_token_github_aqui`
-3. Clique em "Deploy"
+   - Value: `seu_token_github`
+5. Clique em **Deploy**
 
-**4. Pronto!**
-
-A Vercel vai gerar uma URL para a sua API. Cada push no repositorio fara um novo deploy automaticamente.
-
-### Deploy com Vercel CLI
+### Via CLI
 
 ```bash
-# Instale a Vercel CLI
 npm i -g vercel
-
-# Faca login
 vercel login
-
-# Deploy
 vercel --prod
-
-# Adicione a variavel de ambiente
 echo "seu_token" | vercel env add GITHUB_TOKEN production
 ```
+
+> Cada push no repositorio faz redeploy automatico.
 
 ---
 
 ## Seguranca
 
-A API implementa as seguintes medidas de seguranca:
+| Check | Status | Descricao |
+|:---|:---:|:---|
+| Validacao de username | :white_check_mark: | Regex rigorosa, max 39 chars |
+| URL encoding | :white_check_mark: | `encodeURIComponent` em todos os params |
+| Validacao de sort/order | :white_check_mark: | Whitelist de valores permitidos |
+| Limite de busca | :white_check_mark: | Campo search limitado a 100 chars |
+| Anti-loop | :white_check_mark: | Max 10 paginas internas (1.000 repos) |
+| Rate limit handling | :white_check_mark: | 403 do GitHub retornado como 429 |
+| Validacao de resposta | :white_check_mark: | Verifica `Array.isArray` antes de processar |
+| CORS controlado | :white_check_mark: | Apenas GET e OPTIONS permitidos |
+| Token protegido | :white_check_mark: | Apenas em env vars, nunca exposto |
+| Sem dados sensiveis | :white_check_mark: | Apenas dados publicos retornados |
 
-- **Validacao de username:** Regex que aceita apenas caracteres validos do GitHub (letras, numeros, hifens), com no maximo 39 caracteres
-- **Encoding de URL:** `encodeURIComponent` no username para prevenir URL injection
-- **Validacao de parametros:** `sort` e `order` sao validados contra listas de valores permitidos
-- **Limite de busca:** O campo `search` e limitado a 100 caracteres
-- **Limite de paginacao:** Maximo de 10 paginas internas (1.000 repos) para evitar loops infinitos
-- **Rate limit handling:** Respostas 403 do GitHub sao tratadas e retornadas como 429
-- **Validacao de resposta:** Verifica se a resposta do GitHub e um array valido
-- **CORS configurado:** Permite acesso de qualquer origem para uso publico
-- **Token seguro:** O `GITHUB_TOKEN` fica em variaveis de ambiente, nunca exposto no codigo
-- **`.gitignore` configurado:** Arquivos `.env` sao ignorados pelo git
+> Auditoria completa: [api-pearl-nine-29.vercel.app/security](https://api-pearl-nine-29.vercel.app/security)
 
 ---
 
 ## Limites
 
 | Recurso | Limite |
-|---|---|
-| Rate limit sem token | 60 requisicoes/hora |
-| Rate limit com token | 5.000 requisicoes/hora |
-| Max repos por usuario | 1.000 (10 paginas x 100) |
-| Max items por pagina | 100 |
-| Max caracteres no search | 100 |
-| Cache | 1 hora (revalidate: 3600) |
+|:---|:---|
+| Rate limit sem token | 60 req/hora |
+| Rate limit com token | 5.000 req/hora |
+| Max repos por usuario | 1.000 (10 pag x 100) |
+| Max itens por pagina | 100 |
+| Max chars no search | 100 |
+| Cache | 1 hora |
 
 ---
 
 ## Tecnologias
 
-- **[Next.js 14](https://nextjs.org/)** — Framework React com App Router
-- **[Vercel](https://vercel.com/)** — Hospedagem e deploy automatico
-- **[GitHub REST API v3](https://docs.github.com/en/rest)** — Fonte dos dados
+<p>
+  <img src="https://img.shields.io/badge/Next.js_14-000?style=flat-square&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38bdf8?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Vercel-000?style=flat-square&logo=vercel" alt="Vercel" />
+  <img src="https://img.shields.io/badge/GitHub_API_v3-181717?style=flat-square&logo=github" alt="GitHub API" />
+</p>
 
 ---
 
-## Licenca
+## Links
 
-Este projeto e de uso livre. Faca fork, modifique e use como quiser.
+| | URL |
+|---|---|
+| Site | [api-pearl-nine-29.vercel.app](https://api-pearl-nine-29.vercel.app) |
+| Docs | [/docs](https://api-pearl-nine-29.vercel.app/docs) |
+| Playground | [/playground](https://api-pearl-nine-29.vercel.app/playground) |
+| Exemplos | [/examples](https://api-pearl-nine-29.vercel.app/examples) |
+| Repositorio | [github.com/dev-erickydias/github-api](https://github.com/dev-erickydias/github-api) |
+| LinkedIn | [linkedin.com/in/erickydias](https://www.linkedin.com/in/erickydias) |
+
+---
+
+<p align="center">
+  Feito por <a href="https://github.com/dev-erickydias"><strong>Erick Dias</strong></a>
+  <br />
+  <sub>&copy; 2026 Erick Dias. Todos os direitos reservados.</sub>
+</p>
