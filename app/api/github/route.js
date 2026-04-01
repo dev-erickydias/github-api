@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 const GITHUB_API = "https://api.github.com";
 const MAX_PAGES = 10;
 const VALID_SORTS = ["updated", "created", "pushed", "name", "stars", "forks", "size"];
@@ -18,7 +20,7 @@ async function fetchAllRepos(username) {
             Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
           }),
         },
-        next: { revalidate: 3600 },
+        cache: "no-store",
       }
     );
 
