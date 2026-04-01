@@ -7,7 +7,6 @@ const API_URL = "https://api-pearl-nine-29.vercel.app/api/github";
 
 export default function Playground() {
   const [username, setUsername] = useState("");
-  const [language, setLanguage] = useState("");
   const [sort, setSort] = useState("updated");
   const [perPage, setPerPage] = useState("5");
   const [statsOnly, setStatsOnly] = useState(false);
@@ -19,12 +18,11 @@ export default function Playground() {
   const buildUrl = useCallback(() => {
     const params = new URLSearchParams();
     if (username) params.set("user", username);
-    if (language) params.set("language", language);
     if (sort !== "updated") params.set("sort", sort);
     if (perPage !== "10") params.set("per_page", perPage);
     if (statsOnly) params.set("stats_only", "true");
     return `${API_URL}?${params.toString()}`;
-  }, [username, language, sort, perPage, statsOnly]);
+  }, [username, sort, perPage, statsOnly]);
 
   const handleFetch = async () => {
     if (!username.trim()) {
@@ -86,7 +84,7 @@ export default function Playground() {
           <div className="max-w-4xl mx-auto">
             {/* Controls */}
             <div className="glass-card rounded-2xl p-6 mb-4">
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-xs text-dark-400 mb-2 uppercase tracking-wider">
                     Username *
@@ -97,18 +95,6 @@ export default function Playground() {
                     onChange={(e) => setUsername(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleFetch()}
                     placeholder="ex: torvalds"
-                    className="w-full bg-dark-950 border border-brand-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-dark-400 focus:outline-none focus:border-brand-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-dark-400 mb-2 uppercase tracking-wider">
-                    Linguagem
-                  </label>
-                  <input
-                    type="text"
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    placeholder="ex: TypeScript"
                     className="w-full bg-dark-950 border border-brand-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-dark-400 focus:outline-none focus:border-brand-500 transition-colors"
                   />
                 </div>
