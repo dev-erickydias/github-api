@@ -1,13 +1,91 @@
-export const revalidate = 300;
+import { NextRequest } from "next/server";
+
+export const dynamic = "force-dynamic";
 
 const GITHUB_API = "https://api.github.com";
 const MAX_PAGES = 10;
-const VALID_SORTS = ["updated", "created", "pushed", "name", "stars", "forks", "size"];
-const VALID_ORDERS = ["asc", "desc"];
+const VALID_SORTS = ["updated", "created", "pushed", "name", "stars", "forks", "size"] as const;
+const VALID_ORDERS = ["asc", "desc"] as const;
 const USERNAME_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
 
-async function fetchAllRepos(username) {
-  const repos = [];
+type SortKey = (typeof VALID_SORTS)[number];
+
+interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  clone_url: string;
+  homepage: string | null;
+  language: string | null;
+  topics: string[];
+  default_branch: string;
+  visibility: string;
+  fork: boolean;
+  archived: boolean;
+  is_template: boolean;
+  license: { key: string; name: string } | null;
+  stargazers_count: number;
+  forks_count: number;
+  watchers_count: number;
+  open_issues_count: number;
+  size: number;
+  created_at: string;
+  updated_at: string;
+  pushed_at: string;
+  has_pages: boolean;
+  has_wiki: boolean;
+  has_issues: boolean;
+  has_projects: boolean;
+  has_discussions: boolean;
+}
+
+interface FormattedRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  url: string;
+  clone_url: string;
+  homepage: string | null;
+  language: string | null;
+  topics: string[];
+  default_branch: string;
+  visibility: string;
+  is_fork: boolean;
+  is_archived: boolean;
+  is_template: boolean;
+  license: { key: string; name: string } | null;
+  stats: {
+    stars: number;
+    forks: number;
+    watchers: number;
+    open_issues: number;
+    size_kb: number;
+  };
+  dates: {
+    created_at: string;
+    updated_at: string;
+    pushed_at: string;
+    days_since_update: number;
+  };
+  has: {
+    pages: boolean;
+    wiki: boolean;
+    issues: boolean;
+    projects: boolean;
+    discussions: boolean;
+  };
+}
+
+interface ApiError {
+  status: number;
+  message: string;
+}
+
+async function fetchAllRepos(username: string): Promise<GitHubRepo[]> {
+  const repos: GitHubRepo[] = [];
   let page = 1;
 
   while (page <= MAX_PAGES) {
@@ -20,24 +98,24 @@ async function fetchAllRepos(username) {
             Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
           }),
         },
-        next: { revalidate: 300 },
+        cache: "no-store",
       }
     );
 
     if (!res.ok) {
       if (res.status === 404) {
-        throw { status: 404, message: `User "${username}" not found` };
+        throw { status: 404, message: `User "${username}" not found` } satisfies ApiError;
       }
       if (res.status === 403) {
-        throw { status: 429, message: "GitHub API rate limit exceeded. Try again later." };
+        throw { status: 429, message: "GitHub API rate limit exceeded. Try again later." } satisfies ApiError;
       }
-      throw { status: res.status, message: `GitHub API error: ${res.status}` };
+      throw { status: res.status, message: `GitHub API error: ${res.status}` } satisfies ApiError;
     }
 
-    const data = await res.json();
+    const data: unknown = await res.json();
     if (!Array.isArray(data) || data.length === 0) break;
 
-    repos.push(...data);
+    repos.push(...(data as GitHubRepo[]));
     if (data.length < 100) break;
     page++;
   }
@@ -45,11 +123,11 @@ async function fetchAllRepos(username) {
   return repos;
 }
 
-function formatRepo(repo) {
+function formatRepo(repo: GitHubRepo): FormattedRepo {
   const updatedAt = new Date(repo.updated_at);
   const now = new Date();
   const daysSinceUpdate = Math.floor(
-    (now - updatedAt) / (1000 * 60 * 60 * 24)
+    (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)
   );
 
   return {
@@ -93,9 +171,9 @@ function formatRepo(repo) {
   };
 }
 
-function extractStats(projects) {
-  const languages = {};
-  const topics = {};
+function extractStats(projects: FormattedRepo[]) {
+  const languages: Record<string, number> = {};
+  const topics: Record<string, number> = {};
   let totalStars = 0;
   let totalForks = 0;
 
@@ -125,21 +203,21 @@ function extractStats(projects) {
   };
 }
 
-const corsHeaders = {
+const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: corsHeaders });
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(): Promise<Response> {
   return new Response(null, { status: 204, headers: corsHeaders });
 }
 
-export async function GET(request) {
+export async function GET(request: NextRequest): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
 
@@ -168,14 +246,11 @@ export async function GET(request) {
     }
 
     if (!USERNAME_REGEX.test(user)) {
-      return jsonResponse(
-        { error: "Invalid GitHub username format" },
-        400
-      );
+      return jsonResponse({ error: "Invalid GitHub username format" }, 400);
     }
 
     const sort = searchParams.get("sort") || "updated";
-    if (!VALID_SORTS.includes(sort)) {
+    if (!(VALID_SORTS as readonly string[]).includes(sort)) {
       return jsonResponse(
         { error: `Invalid sort value. Must be one of: ${VALID_SORTS.join(", ")}` },
         400
@@ -183,11 +258,8 @@ export async function GET(request) {
     }
 
     const order = searchParams.get("order") || "desc";
-    if (!VALID_ORDERS.includes(order)) {
-      return jsonResponse(
-        { error: "Invalid order value. Must be 'asc' or 'desc'" },
-        400
-      );
+    if (!(VALID_ORDERS as readonly string[]).includes(order)) {
+      return jsonResponse({ error: "Invalid order value. Must be 'asc' or 'desc'" }, 400);
     }
 
     const language = searchParams.get("language");
@@ -239,13 +311,13 @@ export async function GET(request) {
       return jsonResponse({ user, stats });
     }
 
-    const sortFns = {
+    const sortFns: Record<string, (a: FormattedRepo, b: FormattedRepo) => number> = {
       updated: (a, b) =>
-        new Date(b.dates.updated_at) - new Date(a.dates.updated_at),
+        new Date(b.dates.updated_at).getTime() - new Date(a.dates.updated_at).getTime(),
       created: (a, b) =>
-        new Date(b.dates.created_at) - new Date(a.dates.created_at),
+        new Date(b.dates.created_at).getTime() - new Date(a.dates.created_at).getTime(),
       pushed: (a, b) =>
-        new Date(b.dates.pushed_at) - new Date(a.dates.pushed_at),
+        new Date(b.dates.pushed_at).getTime() - new Date(a.dates.pushed_at).getTime(),
       name: (a, b) => a.name.localeCompare(b.name),
       stars: (a, b) => b.stats.stars - a.stats.stars,
       forks: (a, b) => b.stats.forks - a.stats.forks,
@@ -276,14 +348,12 @@ export async function GET(request) {
       stats,
       projects: paginatedProjects,
     });
-  } catch (error) {
-    if (error.status) {
-      return jsonResponse({ error: error.message }, error.status);
+  } catch (error: unknown) {
+    const apiError = error as ApiError;
+    if (apiError.status) {
+      return jsonResponse({ error: apiError.message }, apiError.status);
     }
     console.error("GitHub API error:", error);
-    return jsonResponse(
-      { error: "Failed to fetch GitHub repositories" },
-      502
-    );
+    return jsonResponse({ error: "Failed to fetch GitHub repositories" }, 502);
   }
 }

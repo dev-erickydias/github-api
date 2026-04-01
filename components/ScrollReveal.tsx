@@ -1,20 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+
+interface ScrollRevealProps {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: "up" | "down" | "left" | "right" | "scale";
+}
 
 export default function ScrollReveal({
   children,
   className = "",
   delay = 0,
   direction = "up",
-}) {
-  const ref = useRef(null);
+}: ScrollRevealProps) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const transforms = {
+    const transforms: Record<string, string> = {
       up: "translateY(40px)",
       down: "translateY(-40px)",
       left: "translateX(-40px)",

@@ -11,9 +11,9 @@ export default function Playground() {
   const [sort, setSort] = useState("updated");
   const [perPage, setPerPage] = useState("5");
   const [statsOnly, setStatsOnly] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const buildUrl = useCallback(() => {
@@ -56,7 +56,7 @@ export default function Playground() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatJson = (obj) => {
+  const formatJson = (obj: Record<string, unknown>): string => {
     const json = JSON.stringify(obj, null, 2);
     return json
       .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')

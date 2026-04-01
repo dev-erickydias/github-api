@@ -1,6 +1,8 @@
 import "./globals.css";
+import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 
-export const metadata = {
+export const metadata: Metadata = {
   metadataBase: new URL("https://api-pearl-nine-29.vercel.app"),
   title: "GitReposAPI - API publica para repositorios GitHub",
   description:
@@ -46,13 +48,13 @@ export const metadata = {
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   themeColor: "#080b10",
   width: "device-width",
   initialScale: 1,
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" className="scroll-smooth">
       <head>

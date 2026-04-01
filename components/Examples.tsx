@@ -120,7 +120,7 @@ export default function Examples() {
   const [activeExample, setActiveExample] = useState("fetch");
   const [copied, setCopied] = useState(false);
 
-  const current = examples.find((e) => e.id === activeExample);
+  const current = examples.find((e) => e.id === activeExample)!;
 
   const copyCode = () => {
     navigator.clipboard.writeText(current.code);
