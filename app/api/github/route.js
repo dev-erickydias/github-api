@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const GITHUB_API = "https://api.github.com";
 const MAX_PAGES = 10;
@@ -20,7 +20,7 @@ async function fetchAllRepos(username) {
             Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
           }),
         },
-        cache: "no-store",
+        next: { revalidate: 300 },
       }
     );
 
