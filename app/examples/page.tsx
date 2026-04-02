@@ -116,6 +116,7 @@ useEffect(() => {
     <p>{repo.description || "Sem descricao"}</p>
 
     <div className="tags">
+      {repo.language && <span>{repo.language}</span>}
       <span>{repo.stats.stars} stars</span>
     </div>
 
@@ -146,7 +147,7 @@ useEffect(() => {
   <span>{stats.total_stars} stars</span>
   <span>{stats.total_forks} forks</span>
   <span>
-    Top topico: {stats.topics[0]?.name}
+    Top linguagem: {stats.languages[0]?.name}
   </span>
 </div>`}</pre>
                 </div>

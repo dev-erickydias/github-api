@@ -24,7 +24,7 @@ console.log(data.projects);           // Lista de repos
 
 // Com filtros
 const filtered = await fetch(
-  "${API_URL}?user=USERNAME&sort=stars"
+  "${API_URL}?user=USERNAME&language=TypeScript&sort=stars"
 ).then(res => res.json());`,
   },
   {
@@ -55,7 +55,7 @@ export default function Projects() {
         <div key={repo.id}>
           <h2>{repo.name}</h2>
           <p>{repo.description}</p>
-          <span>{repo.stats.stars} stars</span>
+          <span>{repo.language} | {repo.stats.stars} stars</span>
           {repo.homepage && <a href={repo.homepage}>Demo</a>}
         </div>
       ))}
@@ -86,7 +86,7 @@ print(f"Stars: {data['stats']['total_stars']}")
 
 # Listar projetos
 for repo in data["projects"]:
-    print(f"  {repo['name']} - {repo['stats']['stars']} stars")
+    print(f"  {repo['name']} - {repo['language']}")
 
 # Apenas stats
 stats = requests.get(API, params={
@@ -103,7 +103,7 @@ stats = requests.get(API, params={
 curl "${API_URL}?user=USERNAME"
 
 # Filtrar por linguagem + ordenar por stars
-curl "${API_URL}?user=USERNAME&sort=stars"
+curl "${API_URL}?user=USERNAME&language=TypeScript&sort=stars"
 
 # Paginacao: pagina 2, 5 por pagina
 curl "${API_URL}?user=USERNAME&page=2&per_page=5"

@@ -18,6 +18,7 @@ interface GitHubRepo {
   html_url: string;
   clone_url: string;
   homepage: string | null;
+  language: string | null;
   topics: string[];
   default_branch: string;
   visibility: string;
@@ -48,6 +49,7 @@ interface FormattedRepo {
   url: string;
   clone_url: string;
   homepage: string | null;
+  language: string | null;
   topics: string[];
   default_branch: string;
   visibility: string;
@@ -136,6 +138,7 @@ function formatRepo(repo: GitHubRepo): FormattedRepo {
     url: repo.html_url,
     clone_url: repo.clone_url,
     homepage: repo.homepage || null,
+    language: repo.language,
     topics: repo.topics || [],
     default_branch: repo.default_branch,
     visibility: repo.visibility,
@@ -169,6 +172,7 @@ function formatRepo(repo: GitHubRepo): FormattedRepo {
 }
 
 function extractStats(projects: FormattedRepo[]) {
+  const languages: Record<string, number> = {};
   const topics: Record<string, number> = {};
   let totalStars = 0;
   let totalForks = 0;
@@ -176,6 +180,10 @@ function extractStats(projects: FormattedRepo[]) {
   for (const project of projects) {
     totalStars += project.stats.stars;
     totalForks += project.stats.forks;
+
+    if (project.language) {
+      languages[project.language] = (languages[project.language] || 0) + 1;
+    }
 
     for (const topic of project.topics) {
       topics[topic] = (topics[topic] || 0) + 1;
@@ -186,6 +194,9 @@ function extractStats(projects: FormattedRepo[]) {
     total_repos: projects.length,
     total_stars: totalStars,
     total_forks: totalForks,
+    languages: Object.entries(languages)
+      .sort(([, a], [, b]) => b - a)
+      .map(([name, count]) => ({ name, count })),
     topics: Object.entries(topics)
       .sort(([, a], [, b]) => b - a)
       .map(([name, count]) => ({ name, count })),
@@ -218,6 +229,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           usage: "/api/github?user=USERNAME",
           params: {
             user: "(required) GitHub username",
+            language: "Filter by programming language",
             topic: "Filter by repository topic",
             search: "Search in name or description",
             sort: "updated | created | pushed | name | stars | forks | size",
@@ -250,6 +262,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       return jsonResponse({ error: "Invalid order value. Must be 'asc' or 'desc'" }, 400);
     }
 
+    const language = searchParams.get("language");
     const topic = searchParams.get("topic");
     const search = searchParams.get("search");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -270,6 +283,12 @@ export async function GET(request: NextRequest): Promise<Response> {
         return true;
       })
       .map(formatRepo);
+
+    if (language) {
+      projects = projects.filter(
+        (p) => p.language && p.language.toLowerCase() === language.toLowerCase()
+      );
+    }
 
     if (topic) {
       projects = projects.filter((p) =>

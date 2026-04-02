@@ -7,6 +7,7 @@ const API_URL = "https://api-pearl-nine-29.vercel.app/api/github";
 
 const params = [
   { name: "user", type: "string", required: true, default: "-", desc: "Username do GitHub" },
+  { name: "language", type: "string", required: false, default: "-", desc: "Filtrar por linguagem" },
   { name: "topic", type: "string", required: false, default: "-", desc: "Filtrar por topico" },
   { name: "search", type: "string", required: false, default: "-", desc: "Buscar no nome ou descricao" },
   { name: "sort", type: "string", required: false, default: "updated", desc: "updated | created | pushed | name | stars | forks | size" },
@@ -25,6 +26,7 @@ const responseFields = [
   { path: "description", type: "string|null", desc: "Descricao do repo" },
   { path: "url", type: "string", desc: "URL no GitHub" },
   { path: "homepage", type: "string|null", desc: "URL do site/demo" },
+  { path: "language", type: "string|null", desc: "Linguagem principal" },
   { path: "topics", type: "string[]", desc: "Tags do repositorio" },
   { path: "stats.stars", type: "number", desc: "Numero de stars" },
   { path: "stats.forks", type: "number", desc: "Numero de forks" },
@@ -152,6 +154,7 @@ export default function Docs() {
     "total_repos": 25,
     "total_stars": 142,
     "total_forks": 38,
+    "languages": [{ "name": "TypeScript", "count": 12 }],
     "topics": [{ "name": "react", "count": 6 }]
   },
   "projects": [...]

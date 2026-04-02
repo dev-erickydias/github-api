@@ -77,8 +77,8 @@ export default function DocsPage() {
               </p>
               <div className="code-block rounded-xl p-5">
                 <pre className="text-sm text-dark-300">
-{`# Ordenar por stars, 5 por pagina
-GET ${API_URL}?user=USERNAME&sort=stars&per_page=5
+{`# Filtrar por TypeScript, ordenar por stars, 5 por pagina
+GET ${API_URL}?user=USERNAME&language=TypeScript&sort=stars&per_page=5
 
 # Buscar repos com "api" no nome ou descricao
 GET ${API_URL}?user=USERNAME&search=api
@@ -117,7 +117,7 @@ GET ${API_URL}?user=USERNAME&stats_only=true`}
                   {
                     step: "3",
                     title: "Filtragem",
-                    desc: "Forks e repos arquivados sao removidos por padrao (a nao ser que voce passe include_forks=true ou include_archived=true). Depois, os filtros de topic e search sao aplicados. Todos sao case-insensitive."
+                    desc: "Forks e repos arquivados sao removidos por padrao (a nao ser que voce passe include_forks=true ou include_archived=true). Depois, os filtros de language, topic e search sao aplicados. Todos sao case-insensitive."
                   },
                   {
                     step: "4",
