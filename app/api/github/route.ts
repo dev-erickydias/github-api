@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { getCached, setCached, buildCacheKey } from "../../../lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -274,7 +275,16 @@ export async function GET(request: NextRequest): Promise<Response> {
     const includeArchived = searchParams.get("include_archived") === "true";
     const statsOnly = searchParams.get("stats_only") === "true";
 
-    const allRepos = await fetchAllRepos(user);
+    const cacheKey = buildCacheKey(user);
+    let allRepos = getCached<GitHubRepo[]>(cacheKey);
+    let fromCache = false;
+
+    if (allRepos) {
+      fromCache = true;
+    } else {
+      allRepos = await fetchAllRepos(user);
+      setCached(cacheKey, allRepos);
+    }
 
     let projects = allRepos
       .filter((repo) => {
@@ -308,7 +318,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const stats = extractStats(projects);
 
     if (statsOnly) {
-      return jsonResponse({ user, stats });
+      return jsonResponse({ user, cache: { hit: fromCache, ttl: 600 }, stats });
     }
 
     const sortFns: Record<string, (a: FormattedRepo, b: FormattedRepo) => number> = {
@@ -337,6 +347,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     return jsonResponse({
       user,
+      cache: { hit: fromCache, ttl: 600 },
       pagination: {
         page,
         per_page: perPage,

@@ -1,18 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/docs", label: "Docs" },
-  { href: "/playground", label: "Playground" },
-  { href: "/examples", label: "Exemplos" },
-  { href: "/security", label: "Seguranca" },
-];
+import { useI18n } from "../lib/i18n";
 
 export default function Navbar() {
+  const { lang, setLang, t } = useI18n();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const links = [
+    { href: "/", label: t.nav.home },
+    { href: "/docs", label: t.nav.docs },
+    { href: "/playground", label: t.nav.playground },
+    { href: "/examples", label: t.nav.examples },
+    { href: "/security", label: t.nav.security },
+  ];
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -51,6 +53,16 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+
+          {/* Language toggle */}
+          <button
+            onClick={() => setLang(lang === "en" ? "pt" : "en")}
+            className="ml-2 px-3 py-2 text-xs font-bold rounded-lg border border-brand-500/20 text-dark-300 hover:text-white hover:bg-white/5 hover:border-brand-500/40 transition-all duration-300 uppercase tracking-wider"
+            aria-label="Toggle language"
+          >
+            {lang === "en" ? "PT" : "EN"}
+          </button>
+
           <a
             href="https://github.com/dev-erickydias/github-api"
             target="_blank"
@@ -64,25 +76,36 @@ export default function Navbar() {
           </a>
         </div>
 
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
-          aria-label="Toggle menu"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            {mobileOpen ? (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
-            ) : (
-              <>
-                <line x1="4" y1="8" x2="20" y2="8" />
-                <line x1="4" y1="16" x2="20" y2="16" />
-              </>
-            )}
-          </svg>
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile language toggle */}
+          <button
+            onClick={() => setLang(lang === "en" ? "pt" : "en")}
+            className="px-3 py-2 text-xs font-bold rounded-lg border border-brand-500/20 text-dark-300 hover:text-white hover:bg-white/5 hover:border-brand-500/40 transition-all duration-300 uppercase tracking-wider"
+            aria-label="Toggle language"
+          >
+            {lang === "en" ? "PT" : "EN"}
+          </button>
+
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
+            aria-label="Toggle menu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              {mobileOpen ? (
+                <>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </>
+              ) : (
+                <>
+                  <line x1="4" y1="8" x2="20" y2="8" />
+                  <line x1="4" y1="16" x2="20" y2="16" />
+                </>
+              )}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
