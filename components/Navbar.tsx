@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useI18n } from "../lib/i18n";
+import { useI18n, type Lang } from "../lib/i18n";
+
+const LANG_CYCLE: Record<Lang, Lang> = { en: "pt", pt: "es", es: "en" };
+const LANG_NEXT: Record<Lang, string> = { en: "PT", pt: "ES", es: "EN" };
 
 export default function Navbar() {
   const { lang, setLang, t } = useI18n();
@@ -56,11 +59,11 @@ export default function Navbar() {
 
           {/* Language toggle */}
           <button
-            onClick={() => setLang(lang === "en" ? "pt" : "en")}
+            onClick={() => setLang(LANG_CYCLE[lang])}
             className="ml-2 px-3 py-2 text-xs font-bold rounded-lg border border-brand-500/20 text-dark-300 hover:text-white hover:bg-white/5 hover:border-brand-500/40 transition-all duration-300 uppercase tracking-wider"
             aria-label="Toggle language"
           >
-            {lang === "en" ? "PT" : "EN"}
+            {LANG_NEXT[lang]}
           </button>
 
           <a
@@ -79,11 +82,11 @@ export default function Navbar() {
         <div className="flex items-center gap-2 md:hidden">
           {/* Mobile language toggle */}
           <button
-            onClick={() => setLang(lang === "en" ? "pt" : "en")}
+            onClick={() => setLang(LANG_CYCLE[lang])}
             className="px-3 py-2 text-xs font-bold rounded-lg border border-brand-500/20 text-dark-300 hover:text-white hover:bg-white/5 hover:border-brand-500/40 transition-all duration-300 uppercase tracking-wider"
             aria-label="Toggle language"
           >
-            {lang === "en" ? "PT" : "EN"}
+            {LANG_NEXT[lang]}
           </button>
 
           <button
