@@ -57,6 +57,7 @@ interface FormattedRepo {
   is_fork: boolean;
   is_archived: boolean;
   is_template: boolean;
+  is_pinned: boolean;
   license: { key: string; name: string } | null;
   stats: {
     stars: number;
@@ -83,6 +84,54 @@ interface FormattedRepo {
 interface ApiError {
   status: number;
   message: string;
+}
+
+async function fetchPinnedRepos(username: string): Promise<string[]> {
+  // Try GraphQL API first (requires token with read:user scope)
+  if (process.env.GITHUB_TOKEN) {
+    try {
+      const query = `{ user(login: "${username}") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name } } } } }`;
+      const res = await fetch("https://api.github.com/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        },
+        body: JSON.stringify({ query }),
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const nodes = data?.data?.user?.pinnedItems?.nodes;
+        if (Array.isArray(nodes) && nodes.length > 0) {
+          return nodes.map((n: { name: string }) => n.name);
+        }
+      }
+    } catch {
+      // Fall through to HTML fallback
+    }
+  }
+
+  // Fallback: parse pinned repos from the GitHub profile HTML
+  try {
+    const res = await fetch(`https://github.com/${encodeURIComponent(username)}`, {
+      headers: { "User-Agent": "GitReposAPI/1.0" },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+    const html = await res.text();
+    const regex = new RegExp(`/${username}/([a-zA-Z0-9._-]+)"[^>]*class="[^"]*text-bold`, "g");
+    const names: string[] = [];
+    let match;
+    while ((match = regex.exec(html)) !== null) {
+      if (!names.includes(match[1])) names.push(match[1]);
+    }
+    return names;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchAllRepos(username: string): Promise<GitHubRepo[]> {
@@ -124,7 +173,7 @@ async function fetchAllRepos(username: string): Promise<GitHubRepo[]> {
   return repos;
 }
 
-function formatRepo(repo: GitHubRepo): FormattedRepo {
+function formatRepo(repo: GitHubRepo, pinnedNames: string[] = []): FormattedRepo {
   const updatedAt = new Date(repo.updated_at);
   const now = new Date();
   const daysSinceUpdate = Math.floor(
@@ -146,6 +195,7 @@ function formatRepo(repo: GitHubRepo): FormattedRepo {
     is_fork: repo.fork,
     is_archived: repo.archived,
     is_template: repo.is_template,
+    is_pinned: pinnedNames.includes(repo.name),
     license: repo.license
       ? { key: repo.license.key, name: repo.license.name }
       : null,
@@ -240,6 +290,7 @@ export async function GET(request: NextRequest): Promise<Response> {
             include_forks: "true | false (default: false)",
             include_archived: "true | false (default: false)",
             stats_only: "true | false (default: false)",
+            pinned: "true | false — return only pinned/featured repos (default: false)",
           },
         },
         400
@@ -274,6 +325,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const includeForks = searchParams.get("include_forks") === "true";
     const includeArchived = searchParams.get("include_archived") === "true";
     const statsOnly = searchParams.get("stats_only") === "true";
+    const pinnedOnly = searchParams.get("pinned") === "true";
 
     const cacheKey = buildCacheKey(user);
     let allRepos = getCached<GitHubRepo[]>(cacheKey);
@@ -286,13 +338,19 @@ export async function GET(request: NextRequest): Promise<Response> {
       setCached(cacheKey, allRepos);
     }
 
+    const pinnedNames = await fetchPinnedRepos(user);
+
     let projects = allRepos
       .filter((repo) => {
         if (!includeForks && repo.fork) return false;
         if (!includeArchived && repo.archived) return false;
         return true;
       })
-      .map(formatRepo);
+      .map((repo) => formatRepo(repo, pinnedNames));
+
+    if (pinnedOnly) {
+      projects = projects.filter((p) => p.is_pinned);
+    }
 
     if (language) {
       projects = projects.filter(
