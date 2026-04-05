@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getCached, setCached, buildCacheKey } from "../../../lib/cache";
+import { checkRateLimit } from "../../../lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -90,14 +91,20 @@ async function fetchPinnedRepos(username: string): Promise<string[]> {
   // Try GraphQL API first (requires token with read:user scope)
   if (process.env.GITHUB_TOKEN) {
     try {
-      const query = `{ user(login: "${username}") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name } } } } }`;
+      const query = `query($login: String!) {
+        user(login: $login) {
+          pinnedItems(first: 6, types: REPOSITORY) {
+            nodes { ... on Repository { name } }
+          }
+        }
+      }`;
       const res = await fetch("https://api.github.com/graphql", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, variables: { login: username } }),
         cache: "no-store",
       });
 
@@ -122,7 +129,8 @@ async function fetchPinnedRepos(username: string): Promise<string[]> {
 
     if (!res.ok) return [];
     const html = await res.text();
-    const regex = new RegExp(`/${username}/([a-zA-Z0-9._-]+)"[^>]*class="[^"]*text-bold`, "g");
+    const escapedUser = username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`/${escapedUser}/([a-zA-Z0-9._-]+)"[^>]*class="[^"]*text-bold`, "g");
     const names: string[] = [];
     let match;
     while ((match = regex.exec(html)) !== null) {
@@ -270,6 +278,19 @@ export async function OPTIONS(): Promise<Response> {
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || request.headers.get("x-real-ip")
+      || "unknown";
+    const rateLimit = checkRateLimit(ip);
+
+    if (!rateLimit.allowed) {
+      return jsonResponse(
+        { error: "Rate limit exceeded. Try again in 1 minute.", retry_after: Math.ceil((rateLimit.resetAt - Date.now()) / 1000) },
+        429
+      );
+    }
+
     const { searchParams } = new URL(request.url);
 
     const user = searchParams.get("user")?.trim();
