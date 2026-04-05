@@ -205,6 +205,140 @@
   40% { transform: scale(1); }
 }
 
+/* 3D Git Animation */
+.git-scene {
+  width: 280px;
+  height: 280px;
+  perspective: 800px;
+  position: relative;
+}
+
+.git-cube {
+  width: 70px;
+  height: 70px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-style: preserve-3d;
+  transform: translate(-50%, -50%);
+  animation: gitCubeRotate 12s ease-in-out infinite;
+}
+
+.git-cube-face {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(51, 119, 255, 0.06);
+  border: 1px solid rgba(51, 119, 255, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.git-cube-front  { transform: translateZ(35px); }
+.git-cube-back   { transform: rotateY(180deg) translateZ(35px); }
+.git-cube-left   { transform: rotateY(-90deg) translateZ(35px); }
+.git-cube-right  { transform: rotateY(90deg) translateZ(35px); }
+.git-cube-top    { transform: rotateX(90deg) translateZ(35px); }
+.git-cube-bottom { transform: rotateX(-90deg) translateZ(35px); }
+
+@keyframes gitCubeRotate {
+  0%   { transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg); }
+  25%  { transform: translate(-50%, -50%) rotateX(90deg) rotateY(90deg); }
+  50%  { transform: translate(-50%, -50%) rotateX(180deg) rotateY(180deg); }
+  75%  { transform: translate(-50%, -50%) rotateX(270deg) rotateY(270deg); }
+  100% { transform: translate(-50%, -50%) rotateX(360deg) rotateY(360deg); }
+}
+
+/* Orbiting commit nodes */
+.git-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px dashed rgba(51, 119, 255, 0.12);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.git-orbit-1 {
+  width: 160px;
+  height: 160px;
+  animation: gitOrbit 8s linear infinite;
+}
+
+.git-orbit-2 {
+  width: 210px;
+  height: 210px;
+  animation: gitOrbit 12s linear infinite reverse;
+}
+
+.git-orbit-3 {
+  width: 260px;
+  height: 260px;
+  animation: gitOrbit 16s linear infinite;
+}
+
+@keyframes gitOrbit {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.git-commit-node {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3377ff, #59d9ff);
+  box-shadow: 0 0 16px rgba(51, 119, 255, 0.5);
+  transform: translateX(-50%);
+}
+
+.git-commit-node-sm {
+  width: 8px;
+  height: 8px;
+  top: -4px;
+  background: linear-gradient(135deg, #59d9ff, #8ec0ff);
+  box-shadow: 0 0 12px rgba(89, 217, 255, 0.4);
+}
+
+/* Floating branch lines */
+.git-branch {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(51, 119, 255, 0.3), transparent);
+  border-radius: 1px;
+}
+
+.git-branch-1 {
+  height: 60px;
+  top: 20%;
+  left: 15%;
+  animation: gitBranchFloat 6s ease-in-out infinite;
+}
+
+.git-branch-2 {
+  height: 45px;
+  top: 60%;
+  right: 18%;
+  animation: gitBranchFloat 8s ease-in-out 2s infinite;
+}
+
+.git-branch-3 {
+  height: 35px;
+  bottom: 15%;
+  left: 25%;
+  animation: gitBranchFloat 7s ease-in-out 4s infinite;
+}
+
+@keyframes gitBranchFloat {
+  0%, 100% { opacity: 0.3; transform: translateY(0) scaleY(1); }
+  50%      { opacity: 0.8; transform: translateY(-12px) scaleY(1.2); }
+}
+
 @layer utilities {
   .delay-100 { animation-delay: 0.1s; }
   .delay-200 { animation-delay: 0.2s; }

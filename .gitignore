@@ -5,4 +5,8 @@ node_modules/
 .next/
 
 .vercel
+.claude
 post/
+
+# local post/marketing content
+/post

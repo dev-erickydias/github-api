@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { getCached, setCached, buildCacheKey } from "../../../lib/cache";
+import { checkRateLimit } from "../../../lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +58,7 @@ interface FormattedRepo {
   is_fork: boolean;
   is_archived: boolean;
   is_template: boolean;
+  is_pinned: boolean;
   license: { key: string; name: string } | null;
   stats: {
     stars: number;
@@ -82,6 +85,61 @@ interface FormattedRepo {
 interface ApiError {
   status: number;
   message: string;
+}
+
+async function fetchPinnedRepos(username: string): Promise<string[]> {
+  // Try GraphQL API first (requires token with read:user scope)
+  if (process.env.GITHUB_TOKEN) {
+    try {
+      const query = `query($login: String!) {
+        user(login: $login) {
+          pinnedItems(first: 6, types: REPOSITORY) {
+            nodes { ... on Repository { name } }
+          }
+        }
+      }`;
+      const res = await fetch("https://api.github.com/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        },
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const nodes = data?.data?.user?.pinnedItems?.nodes;
+        if (Array.isArray(nodes) && nodes.length > 0) {
+          return nodes.map((n: { name: string }) => n.name);
+        }
+      }
+    } catch {
+      // Fall through to HTML fallback
+    }
+  }
+
+  // Fallback: parse pinned repos from the GitHub profile HTML
+  try {
+    const res = await fetch(`https://github.com/${encodeURIComponent(username)}`, {
+      headers: { "User-Agent": "GitReposAPI/1.0" },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+    const html = await res.text();
+    const escapedUser = username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`/${escapedUser}/([a-zA-Z0-9._-]+)"[^>]*class="[^"]*text-bold`, "g");
+    const names: string[] = [];
+    let match;
+    while ((match = regex.exec(html)) !== null) {
+      if (!names.includes(match[1])) names.push(match[1]);
+    }
+    return names;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchAllRepos(username: string): Promise<GitHubRepo[]> {
@@ -123,7 +181,7 @@ async function fetchAllRepos(username: string): Promise<GitHubRepo[]> {
   return repos;
 }
 
-function formatRepo(repo: GitHubRepo): FormattedRepo {
+function formatRepo(repo: GitHubRepo, pinnedNames: string[] = []): FormattedRepo {
   const updatedAt = new Date(repo.updated_at);
   const now = new Date();
   const daysSinceUpdate = Math.floor(
@@ -145,6 +203,7 @@ function formatRepo(repo: GitHubRepo): FormattedRepo {
     is_fork: repo.fork,
     is_archived: repo.archived,
     is_template: repo.is_template,
+    is_pinned: pinnedNames.includes(repo.name),
     license: repo.license
       ? { key: repo.license.key, name: repo.license.name }
       : null,
@@ -219,6 +278,19 @@ export async function OPTIONS(): Promise<Response> {
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || request.headers.get("x-real-ip")
+      || "unknown";
+    const rateLimit = checkRateLimit(ip);
+
+    if (!rateLimit.allowed) {
+      return jsonResponse(
+        { error: "Rate limit exceeded. Try again in 1 minute.", retry_after: Math.ceil((rateLimit.resetAt - Date.now()) / 1000) },
+        429
+      );
+    }
+
     const { searchParams } = new URL(request.url);
 
     const user = searchParams.get("user")?.trim();
@@ -239,6 +311,7 @@ export async function GET(request: NextRequest): Promise<Response> {
             include_forks: "true | false (default: false)",
             include_archived: "true | false (default: false)",
             stats_only: "true | false (default: false)",
+            pinned: "true | false — return only pinned/featured repos (default: false)",
           },
         },
         400
@@ -273,8 +346,20 @@ export async function GET(request: NextRequest): Promise<Response> {
     const includeForks = searchParams.get("include_forks") === "true";
     const includeArchived = searchParams.get("include_archived") === "true";
     const statsOnly = searchParams.get("stats_only") === "true";
+    const pinnedOnly = searchParams.get("pinned") === "true";
 
-    const allRepos = await fetchAllRepos(user);
+    const cacheKey = buildCacheKey(user);
+    let allRepos = getCached<GitHubRepo[]>(cacheKey);
+    let fromCache = false;
+
+    if (allRepos) {
+      fromCache = true;
+    } else {
+      allRepos = await fetchAllRepos(user);
+      setCached(cacheKey, allRepos);
+    }
+
+    const pinnedNames = await fetchPinnedRepos(user);
 
     let projects = allRepos
       .filter((repo) => {
@@ -282,7 +367,11 @@ export async function GET(request: NextRequest): Promise<Response> {
         if (!includeArchived && repo.archived) return false;
         return true;
       })
-      .map(formatRepo);
+      .map((repo) => formatRepo(repo, pinnedNames));
+
+    if (pinnedOnly) {
+      projects = projects.filter((p) => p.is_pinned);
+    }
 
     if (language) {
       projects = projects.filter(
@@ -308,7 +397,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const stats = extractStats(projects);
 
     if (statsOnly) {
-      return jsonResponse({ user, stats });
+      return jsonResponse({ user, cache: { hit: fromCache, ttl: 600 }, stats });
     }
 
     const sortFns: Record<string, (a: FormattedRepo, b: FormattedRepo) => number> = {
@@ -337,6 +426,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     return jsonResponse({
       user,
+      cache: { hit: fromCache, ttl: 600 },
       pagination: {
         page,
         per_page: perPage,
