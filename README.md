@@ -1,7 +1,9 @@
 <p align="center">
+  <img src="https://img.shields.io/badge/v2.0-blue?style=for-the-badge" alt="v2.0" />
   <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/Vercel-Deployed-000?style=for-the-badge&logo=vercel" alt="Vercel" />
   <img src="https://img.shields.io/badge/CORS-Enabled-blue?style=for-the-badge" alt="CORS" />
+  <img src="https://img.shields.io/badge/i18n-EN%20PT%20ES-orange?style=for-the-badge" alt="i18n" />
   <img src="https://img.shields.io/badge/License-Free-green?style=for-the-badge" alt="License" />
 </p>
 
@@ -12,7 +14,7 @@
 </h1>
 
 <h4 align="center">
-  API publica para buscar, filtrar e ordenar repositorios publicos de qualquer usuario do GitHub com uma unica chamada.
+  API publica para buscar, filtrar, fixar e ordenar repositorios publicos de qualquer usuario do GitHub. Cache inteligente, rate limiting e i18n.
 </h4>
 
 <p align="center">
@@ -72,6 +74,7 @@ curl "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME"
 ```json
 {
   "user": "USERNAME",
+  "cache": { "hit": false, "ttl": 600 },
   "pagination": { "page": 1, "total_items": 25, "has_next": true },
   "stats": { "total_repos": 25, "total_stars": 142 },
   "projects": [
@@ -81,6 +84,7 @@ curl "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME"
       "language": "TypeScript",
       "url": "https://github.com/USERNAME/meu-projeto",
       "homepage": "https://meusite.com",
+      "is_pinned": true,
       "stats": { "stars": 15, "forks": 3 }
     }
   ]
@@ -129,6 +133,7 @@ Todos via query string (`?chave=valor&chave2=valor2`):
 | `include_forks` | `boolean` | Nao | `false` | Incluir repos que sao forks |
 | `include_archived` | `boolean` | Nao | `false` | Incluir repos arquivados |
 | `stats_only` | `boolean` | Nao | `false` | Retorna apenas estatisticas |
+| `pinned` | `boolean` | Nao | `false` | Retorna apenas repos fixados no perfil |
 
 ### Opcoes de `sort`
 
@@ -196,6 +201,14 @@ GET /api/github?user=torvalds&stats_only=true
 }
 ```
 
+### Repos fixados (pinned)
+
+```
+GET /api/github?user=dev-erickydias&pinned=true
+```
+
+**Resposta:** apenas os repos que o usuario fixou no perfil do GitHub, com `is_pinned: true`.
+
 ### Incluir forks e arquivados
 
 ```
@@ -219,6 +232,7 @@ GET /api/github?user=USERNAME&language=TypeScript&sort=stars&order=desc&per_page
 ```json
 {
   "user": "USERNAME",
+  "cache": { "hit": false, "ttl": 600 },
   "pagination": {
     "page": 1,
     "per_page": 10,
@@ -250,6 +264,7 @@ GET /api/github?user=USERNAME&language=TypeScript&sort=stars&order=desc&per_page
       "is_fork": false,
       "is_archived": false,
       "is_template": false,
+      "is_pinned": true,
       "license": { "key": "mit", "name": "MIT License" },
       "stats": {
         "stars": 15,
@@ -297,6 +312,7 @@ GET /api/github?user=USERNAME&language=TypeScript&sort=stars&order=desc&per_page
 | `is_fork` | `boolean` | Se e fork |
 | `is_archived` | `boolean` | Se esta arquivado |
 | `is_template` | `boolean` | Se e template |
+| `is_pinned` | `boolean` | Se esta fixado no perfil |
 | `license` | `object\|null` | Licenca (`key` e `name`) |
 
 </details>
@@ -497,27 +513,31 @@ curl -s "https://api-pearl-nine-29.vercel.app/api/github?user=USERNAME" | jq '.p
 ## Como Funciona Internamente
 
 ```
-Seu App                    GitReposAPI (Vercel)              GitHub API
+Seu App                    GitReposAPI v2 (Vercel)           GitHub API
    |                             |                              |
    |  GET ?user=USERNAME         |                              |
    |---------------------------->|                              |
+   |                             |  Rate limit check (30/min)   |
    |                             |  Valida inputs               |
    |                             |  (regex, sort, order)        |
    |                             |                              |
+   |                             |  Cache hit? (TTL 10min)      |
+   |                             |  [sim] -> usa cache          |
+   |                             |  [nao] -> busca no GitHub    |
+   |                             |                              |
    |                             |  GET /users/USERNAME/repos   |
    |                             |----------------------------->|
-   |                             |  (paginacao automatica,      |
-   |                             |   ate 10 paginas x 100)      |
+   |                             |  + GraphQL pinnedItems       |
    |                             |<-----------------------------|
    |                             |                              |
    |                             |  Filtra (language, topic,    |
-   |                             |  search, forks, archived)    |
+   |                             |  search, forks, pinned)      |
    |                             |                              |
    |                             |  Calcula stats               |
    |                             |  Ordena (sort + order)       |
    |                             |  Pagina (page + per_page)    |
    |                             |                              |
-   |  JSON formatado + CORS      |                              |
+   |  JSON + cache info + CORS   |                              |
    |<----------------------------|                              |
 ```
 
@@ -605,6 +625,10 @@ echo "seu_token" | vercel env add GITHUB_TOKEN production
 | CORS controlado | :white_check_mark: | Apenas GET e OPTIONS permitidos |
 | Token protegido | :white_check_mark: | Apenas em env vars, nunca exposto |
 | Sem dados sensiveis | :white_check_mark: | Apenas dados publicos retornados |
+| Rate limiting | :white_check_mark: | 30 req/min por IP |
+| Security headers | :white_check_mark: | X-Frame-Options, X-Content-Type, Referrer-Policy |
+| Cache bounded | :white_check_mark: | Max 100 entradas em memoria com TTL de 10min |
+| GraphQL parametrizado | :white_check_mark: | Variaveis parametrizadas contra injection |
 
 > Auditoria completa: [api-pearl-nine-29.vercel.app/security](https://api-pearl-nine-29.vercel.app/security)
 
@@ -614,12 +638,15 @@ echo "seu_token" | vercel env add GITHUB_TOKEN production
 
 | Recurso | Limite |
 |:---|:---|
-| Rate limit sem token | 60 req/hora |
-| Rate limit com token | 5.000 req/hora |
+| Rate limit da API | 30 req/min por IP |
+| Rate limit GitHub sem token | 60 req/hora |
+| Rate limit GitHub com token | 5.000 req/hora |
 | Max repos por usuario | 1.000 (10 pag x 100) |
 | Max itens por pagina | 100 |
 | Max chars no search | 100 |
-| Cache | 1 hora |
+| Cache TTL | 10 minutos |
+| Cache max entries | 100 usuarios |
+| Max pinned repos | 6 (limite do GitHub) |
 
 ---
 

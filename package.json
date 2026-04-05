@@ -1,7 +1,7 @@
 {
   "name": "github-api",
-  "version": "1.0.0",
-  "description": "Public API to fetch and filter GitHub user repositories",
+  "version": "2.0.0",
+  "description": "Public API to fetch, filter, and pin GitHub user repositories — with cache, rate limiting, and i18n",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
